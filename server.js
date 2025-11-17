@@ -81,9 +81,7 @@ app.get("/auth/google/callback", async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    // Send cookie + json
-    res.cookie("token", token, { httpOnly: true });
-    res.json({ message: "Login success", token, user });
+    res.redirect(`https://edudel-lite.vercel.app/auth/success?token=${token}`);
   } catch (err) {
     console.log(err.response?.data || err);
     res.status(500).json({ error: "OAuth failed" });
