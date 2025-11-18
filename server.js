@@ -88,6 +88,53 @@ app.get("/auth/google/callback", async (req, res) => {
   }
 });
 
+
+// Manual Signup Route (Name + Email + Password)
+app.post("/auth/signup", async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+
+    // Validate
+    if (!name || !email || !password) {
+      return res.status(400).json({ error: "All fields are required" });
+    }
+
+    // Check if user exists
+    const checkUser = await pool.query(
+      "SELECT * FROM users WHERE email = $1",
+      [email]
+    );
+
+    if (checkUser.rows.length > 0) {
+      return res.status(409).json({ error: "User already exists" });
+    }
+
+    // Insert user
+    const newUser = await pool.query(
+      "INSERT INTO users (name, email, password) VALUES ($1,$2,$3) RETURNING *",
+      [name, email, password] // You can hash later bro
+    );
+
+    const user = newUser.rows[0];
+
+    // Create JWT token
+    const token = jwt.sign(
+      { id: user.id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    // Send response with token
+    res.status(201).json({
+      message: "Signup completed",
+      token,
+      user
+    });
+  } catch (err) {
+    console.error("SIGNUP ERROR:", err);
+    res.status(500).json({ error: "Signup failed" });
+  }
+});
 // Protected route example
 app.get("/me", (req, res) => {
   const token = req.cookies.token;
