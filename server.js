@@ -9,7 +9,7 @@ import { pool } from "./db.js";
 dotenv.config();
 
 const app = express();
-app.use(cors({ origin: true, credentials: true }));
+app.use(cors({ origin: "https://edudel-lite.vercel.app", credentials: true }));
 app.use(cookieParser());
 app.use(express.json());
 
@@ -24,14 +24,14 @@ app.get("/auth/google", (req, res) => {
       scope: "openid email profile",
       prompt: "select_account"
     });
-
+  
   res.redirect(url);
 });
 
 // Step 2: Google redirects back with "code"
 app.get("/auth/google/callback", async (req, res) => {
   const code = req.query.code;
-
+  
   try {
     // Exchange code → tokens
     const tokenRes = await axios.post(
@@ -42,26 +42,24 @@ app.get("/auth/google/callback", async (req, res) => {
         client_secret: process.env.GOOGLE_CLIENT_SECRET,
         redirect_uri: process.env.GOOGLE_REDIRECT_URL,
         grant_type: "authorization_code"
-      },
-      { headers: { "Content-Type": "application/json" } }
+      }, { headers: { "Content-Type": "application/json" } }
     );
-
+    
     const { access_token, id_token } = tokenRes.data;
-
+    
     // Fetch user info
     const userRes = await axios.get(
-      "https://www.googleapis.com/oauth2/v3/userinfo",
-      { headers: { Authorization: `Bearer ${access_token}` } }
+      "https://www.googleapis.com/oauth2/v3/userinfo", { headers: { Authorization: `Bearer ${access_token}` } }
     );
-
+    
     const profile = userRes.data;
-
+    
     // Check if user exists in DB
     let result = await pool.query(
       "SELECT * FROM users WHERE google_id = $1",
       [profile.sub]
     );
-
+    
     let user;
     if (result.rows.length === 0) {
       // New user -> insert
@@ -73,14 +71,12 @@ app.get("/auth/google/callback", async (req, res) => {
     } else {
       user = result.rows[0];
     }
-
+    
     // Create JWT Token
-    const token = jwt.sign(
-      { id: user.id, email: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
+    const token = jwt.sign({ id: user.id, email: user.email, name: user.name, picture: user.picture },
+      process.env.JWT_SECRET, { expiresIn: "7d" }
     );
-
+    
     res.redirect(`https://edudel-lite.vercel.app/auth/success?token=${token}`);
   } catch (err) {
     console.log(err.response?.data || err);
@@ -93,37 +89,35 @@ app.get("/auth/google/callback", async (req, res) => {
 app.post("/auth/signup", async (req, res) => {
   try {
     const { name, email, password } = req.body;
-
+    
     // Validate
     if (!name || !email || !password) {
       return res.status(400).json({ error: "All fields are required" });
     }
-
+    
     // Check if user exists
     const checkUser = await pool.query(
       "SELECT * FROM users WHERE email = $1",
       [email]
     );
-
+    
     if (checkUser.rows.length > 0) {
       return res.status(409).json({ error: "User already exists" });
     }
-
+    
     // Insert user
     const newUser = await pool.query(
       "INSERT INTO users (name, email, password) VALUES ($1,$2,$3) RETURNING *",
       [name, email, password] // You can hash later bro
     );
-
+    
     const user = newUser.rows[0];
-
+    
     // Create JWT token
-    const token = jwt.sign(
-      { id: user.id, email: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
+    const token = jwt.sign({ id: user.id, email: user.email },
+      process.env.JWT_SECRET, { expiresIn: "7d" }
     );
-
+    
     // Send response with token
     res.status(201).json({
       message: "Signup completed",
@@ -139,7 +133,7 @@ app.post("/auth/signup", async (req, res) => {
 app.get("/me", (req, res) => {
   const token = req.cookies.token;
   if (!token) return res.status(401).json({ error: "No token" });
-
+  
   const user = jwt.verify(token, process.env.JWT_SECRET);
   res.json(user);
 });
