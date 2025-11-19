@@ -77,7 +77,7 @@ app.get("/auth/google/callback", async (req, res) => {
       process.env.JWT_SECRET, { expiresIn: "7d" }
     );
     
-    res.redirect(`https://edudel-lite.vercel.app/api/set-cookies?token=${token}`);
+    res.redirect(`https://edudel-lite.vercel.app/auth/success?token=${token}`);
   } catch (err) {
     console.log(err.response?.data || err);
     res.status(500).json({ error: "OAuth failed" });
