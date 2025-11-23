@@ -83,6 +83,8 @@ app.get("/auth/google/callback", async (req, res) => {
 });
 
 
+
+
 // Manual Signup Route (Name + Email + Password)
 app.post("/auth/signup", async (req, res) => {
   try {
@@ -127,6 +129,52 @@ app.post("/auth/signup", async (req, res) => {
     res.status(500).json({ error: "Signup failed" });
   }
 });
+
+app.post("/login", async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    // 1️⃣ Find user by email
+    const result = await pool.query(
+      "SELECT * FROM users WHERE email = $1",
+      [email]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(400).json({ error: "User not found" });
+    }
+
+    const user = result.rows[0];
+
+    // 2️⃣ Direct password match (no bcrypt)
+    if (user.password !== password) {
+      return res.status(400).json({ error: "Invalid password" });
+    }
+
+    // 3️⃣ Generate JWT
+    const token = jwt.sign(
+      { id: user.id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    // 4️⃣ Send user + token
+    res.json({
+      message: "Login successful",
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        picture: user.picture,
+      },
+    });
+
+  } catch (err) {
+    console.log("Login Error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 // Protected route example
 app.get("/me", (req, res) => {
   const token = req.cookies.token;
