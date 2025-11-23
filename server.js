@@ -73,9 +73,7 @@ app.get("/auth/google/callback", async (req, res) => {
     }
     
     // Create JWT Token
-    const token = jwt.sign({ id: user.id, email: user.email, name: user.name, picture: user.picture },
-      process.env.JWT_SECRET, { expiresIn: "7d" }
-    );
+    const token = { id: user.id, email: user.email, name: user.name, picture: user.picture };
     
     res.redirect(`https://edudel-lite.vercel.app/auth/success?token=${token}`);
   } catch (err) {
