@@ -75,7 +75,7 @@ app.get("/auth/google/callback", async (req, res) => {
     // Create JWT Token
     const token = { id: user.id, email: user.email, name: user.name, picture: user.picture };
     
-    res.redirect(`https://edudel-lite.vercel.app/auth/success?token=${token}`);
+    res.redirect(`https://edudel-lite.vercel.app/auth/success?token=${JSON.stringify(token)}`);
   } catch (err) {
     console.log(err.response?.data || err);
     res.status(500).json({ error: "OAuth failed" });
@@ -119,9 +119,8 @@ app.post("/auth/signup", async (req, res) => {
     );
     
     // Send response with token
-    res.status(201).json({
+    res.json({
       message: "Signup completed",
-      token,
       user
     });
   } catch (err) {
