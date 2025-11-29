@@ -73,7 +73,7 @@ app.get("/auth/google/callback", async (req, res) => {
     }
     
     // Create JWT Token
-    const token = { id: user.id, email: user.email, name: user.name, picture: user.picture };
+    const token = { id: user.id, email: user.email, name: user.name, picture: user.picture, role: user.role };
     
     res.redirect(`https://edudel-lite.vercel.app/auth/success?token=${JSON.stringify(token)}`);
   } catch (err) {
@@ -131,32 +131,30 @@ app.post("/auth/signup", async (req, res) => {
 
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
-
+  
   try {
     // 1️⃣ Find user by email
     const result = await pool.query(
       "SELECT * FROM users WHERE email = $1",
       [email]
     );
-
+    
     if (result.rows.length === 0) {
       return res.status(400).json({ error: "User not found" });
     }
-
+    
     const user = result.rows[0];
-
+    
     // 2️⃣ Direct password match (no bcrypt)
     if (user.password !== password) {
       return res.status(400).json({ error: "Invalid password" });
     }
-
+    
     // 3️⃣ Generate JWT
-    const token = jwt.sign(
-      { id: user.id, email: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
+    const token = jwt.sign({ id: user.id, email: user.email },
+      process.env.JWT_SECRET, { expiresIn: "7d" }
     );
-
+    
     // 4️⃣ Send user + token
     res.json({
       message: "Login successful",
@@ -167,7 +165,7 @@ app.post("/login", async (req, res) => {
         picture: user.picture,
       },
     });
-
+    
   } catch (err) {
     console.log("Login Error:", err);
     res.status(500).json({ error: "Server error" });
