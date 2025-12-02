@@ -129,7 +129,7 @@ app.post("/auth/signup", async (req, res) => {
   }
 });
 
-app.post("/login", async (req, res) => {
+app.post("/auth/login", async (req, res) => {
   const { email, password } = req.body;
   
   try {
