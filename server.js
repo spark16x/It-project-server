@@ -163,6 +163,7 @@ app.post("/auth/login", async (req, res) => {
         name: user.name,
         email: user.email,
         picture: user.picture,
+        role: user.role,
       },
     });
     
